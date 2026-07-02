@@ -24,6 +24,7 @@ Create `.env.local`:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://wkrclhsyypvixgunsgeg.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_or_publishable_key
+NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000
 SUPABASE_SERVICE_ROLE_KEY=your_server_only_service_role_key
 ```
 
@@ -50,6 +51,19 @@ Supported admin roles:
 - `admin`
 - `support`
 - `viewer`
+
+## Supabase Auth Redirect URLs
+
+In Supabase Dashboard > Authentication > URL Configuration, add the web callback URLs:
+
+```text
+http://127.0.0.1:3000/auth/callback
+http://localhost:3000/auth/callback
+https://YOUR-VERCEL-DOMAIN/auth/callback
+https://vettechcompanion.com/auth/callback
+```
+
+The mobile app can keep `vettechcompanion://auth/callback`; the web dashboard needs the `/auth/callback` URLs above so Google login does not fall back to the mobile deep link.
 
 ## Local Development
 

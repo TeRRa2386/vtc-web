@@ -25,8 +25,12 @@ export async function loginAdmin(formData: FormData) {
 
 export async function loginAdminWithGoogle() {
   const supabase = await createSupabaseServerClient();
-  const origin = (await headers()).get("origin");
-  const redirectTo = `${origin ?? ""}/auth/callback?next=/admin`;
+  const requestHeaders = await headers();
+  const origin = requestHeaders.get("origin");
+  const host = requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+  const siteUrl = origin ?? (host ? `${protocol}://${host}` : process.env.NEXT_PUBLIC_SITE_URL);
+  const redirectTo = `${siteUrl}/auth/callback?next=/admin`;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
