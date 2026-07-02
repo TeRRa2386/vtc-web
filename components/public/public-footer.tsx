@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export function PublicFooter() {
   return (
     <footer className="border-t bg-card/70">
@@ -7,9 +5,6 @@ export function PublicFooter() {
         <div>
           <p className="font-black text-foreground">Vet Tech Companion</p>
           <p className="mt-1">© {new Date().getFullYear()} TeRRa Labs. Educational veterinary reference software.</p>
-        </div>
-        <div className="flex flex-wrap gap-4 font-bold">
-          <Link href="/admin/login">Admin</Link>
         </div>
       </div>
     </footer>
