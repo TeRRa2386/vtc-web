@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -20,6 +21,25 @@ export async function loginAdmin(formData: FormData) {
   }
 
   redirect("/admin");
+}
+
+export async function loginAdminWithGoogle() {
+  const supabase = await createSupabaseServerClient();
+  const origin = (await headers()).get("origin");
+  const redirectTo = `${origin ?? ""}/auth/callback?next=/admin`;
+
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo
+    }
+  });
+
+  if (error || !data.url) {
+    redirect("/admin/login?error=oauth");
+  }
+
+  redirect(data.url);
 }
 
 export async function logoutAdmin() {

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Activity } from "lucide-react";
 
-import { loginAdmin } from "@/app/admin/login/actions";
+import { loginAdmin, loginAdminWithGoogle } from "@/app/admin/login/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,10 @@ export default async function AdminLoginPage({ searchParams }: { searchParams: P
       ? "Could not sign in with those credentials."
       : params.error === "missing"
         ? "Enter your admin email and password."
+        : params.error === "oauth"
+          ? "Google sign-in could not be started."
+          : params.error === "callback"
+            ? "Google sign-in could not be completed."
         : null;
 
   return (
@@ -29,7 +33,19 @@ export default async function AdminLoginPage({ searchParams }: { searchParams: P
           <CardTitle>Admin Operations</CardTitle>
           <CardDescription>Sign in with an approved Vet Tech Companion admin account.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="grid gap-5">
+          <form action={loginAdminWithGoogle}>
+            <Button className="w-full" type="submit" variant="outline">
+              Continue with Google
+            </Button>
+          </form>
+
+          <div className="flex items-center gap-3 text-xs font-black uppercase text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
           <form action={loginAdmin} className="grid gap-4">
             <label className="grid gap-2 text-sm font-black">
               Email
