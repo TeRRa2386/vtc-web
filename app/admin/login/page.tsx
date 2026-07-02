@@ -4,6 +4,7 @@ import { Activity } from "lucide-react";
 import { loginAdmin, loginAdminWithGoogle } from "@/app/admin/login/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { GoogleLogo } from "@/components/ui/google-logo";
 import { Input } from "@/components/ui/input";
 
 export const metadata: Metadata = {
@@ -34,18 +35,6 @@ export default async function AdminLoginPage({ searchParams }: { searchParams: P
           <CardDescription>Sign in with an approved Vet Tech Companion admin account.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-5">
-          <form action={loginAdminWithGoogle}>
-            <Button className="w-full" type="submit" variant="outline">
-              Continue with Google
-            </Button>
-          </form>
-
-          <div className="flex items-center gap-3 text-xs font-black uppercase text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            or
-            <span className="h-px flex-1 bg-border" />
-          </div>
-
           <form action={loginAdmin} className="grid gap-4">
             <label className="grid gap-2 text-sm font-black">
               Email
@@ -57,6 +46,23 @@ export default async function AdminLoginPage({ searchParams }: { searchParams: P
             </label>
             {error ? <p className="rounded-md bg-destructive/10 p-3 text-sm font-bold text-destructive">{error}</p> : null}
             <Button type="submit">Sign in</Button>
+          </form>
+
+          <div className="flex items-center gap-3 text-xs font-black uppercase text-muted-foreground">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <form action={loginAdminWithGoogle}>
+            <Button
+              className="h-12 w-full border-2 bg-card text-foreground shadow-soft hover:bg-muted/70"
+              type="submit"
+              variant="outline"
+            >
+              <GoogleLogo />
+              Continue with Google
+            </Button>
           </form>
         </CardContent>
       </Card>
