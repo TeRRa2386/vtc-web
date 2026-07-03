@@ -9,7 +9,10 @@ export async function countRows(table: string, filters?: (query: any) => any) {
     }
     const { count } = await query;
     return count ?? 0;
-  } catch {
+  } catch (error) {
+    if (process.env.NODE_ENV !== "production") {
+      console.info(`Unable to count ${table}:`, error instanceof Error ? error.message : error);
+    }
     return 0;
   }
 }

@@ -63,7 +63,7 @@ https://YOUR-VERCEL-DOMAIN/auth/callback
 https://vettechcompanion.com/auth/callback
 ```
 
-The mobile app can keep `vettechcompanion://auth/callback`; the web dashboard needs the `/auth/callback` URLs above so Google login does not fall back to the mobile deep link.
+The mobile app can keep `vettechcompanion://auth/callback`; the web dashboard needs the exact `/auth/callback` URLs above so Google login does not fall back to the mobile deep link.
 
 ## Local Development
 

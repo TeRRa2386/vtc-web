@@ -1,52 +1,84 @@
-import { StatusForm } from "@/components/admin/status-form";
-import { AdminShell } from "@/components/admin/admin-shell";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { listRows } from "@/lib/admin-data";
+﻿import { AdminShell } from "@/components/admin/admin-shell";
+import { FeatureRequestsWorkspace, type FeatureRequestRecord } from "@/components/admin/feature-requests-workspace";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { formatDate } from "@/lib/utils";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
-type FeatureRequest = {
-  id: string;
-  title?: string;
-  description?: string;
-  category?: string;
-  status?: string;
-  internal_notes?: string;
-  user_email?: string;
+type SuggestionTicket = {
   created_at?: string;
+  id: string;
+  internal_notes?: string;
+  message?: string;
+  status?: string;
+  subject?: string;
+  updated_at?: string;
+  user_email?: string;
+  user_id?: string;
+};
+
+type UserProfile = {
+  email?: string | null;
+  first_name?: string | null;
+  id: string;
+  last_name?: string | null;
+  name?: string | null;
 };
 
 export default async function FeatureRequestsAdminPage() {
   const session = await requireAdmin();
-  const requests = await listRows<FeatureRequest>("feature_requests", "created_at", 100);
+  const supabase = createSupabaseAdminClient();
+  const { data: suggestionRows } = await supabase
+    .from("support_tickets")
+    .select("*")
+    .eq("type", "suggestion")
+    .order("created_at", { ascending: false })
+    .limit(150);
+
+  const suggestionTickets = (suggestionRows ?? []) as SuggestionTicket[];
+  const userIds = Array.from(new Set(suggestionTickets.map((ticket) => ticket.user_id).filter(Boolean))) as string[];
+  let userProfilesById = new Map<string, UserProfile>();
+
+  if (userIds.length) {
+    const { data: userProfiles } = await supabase
+      .from("users")
+      .select("id, name, first_name, last_name, email")
+      .in("id", userIds);
+
+    userProfilesById = new Map((userProfiles ?? []).map((profile) => [profile.id, profile as UserProfile]));
+  }
+
+  function profileFields(userId?: string | null) {
+    const profile = userId ? userProfilesById.get(userId) : null;
+
+    return {
+      profile_email: profile?.email ?? null,
+      user_first_name: profile?.first_name ?? null,
+      user_last_name: profile?.last_name ?? null,
+      user_name: profile?.name ?? null
+    };
+  }
+
+  const requests: FeatureRequestRecord[] = suggestionTickets.map((ticket) => ({
+    created_at: ticket.created_at,
+    description: ticket.message,
+    id: ticket.id,
+    internal_notes: ticket.internal_notes,
+    status: ticket.status,
+    title: ticket.subject,
+    updated_at: ticket.updated_at,
+    user_email: ticket.user_email,
+    user_id: ticket.user_id,
+    ...profileFields(ticket.user_id)
+  }));
 
   return (
     <AdminShell session={session}>
-    <div className="grid gap-6">
-      <div>
-        <h1 className="text-3xl font-black">Feature Requests</h1>
-        <p className="mt-2 text-muted-foreground">Review suggestions and track product planning status.</p>
+      <div className="grid gap-6">
+        <div>
+          <h1 className="text-3xl font-black">Feature Requests</h1>
+          <p className="mt-2 text-muted-foreground">Review suggestions and track product planning status.</p>
+        </div>
+        <FeatureRequestsWorkspace requests={requests} />
       </div>
-      <div className="grid gap-4">
-        {requests.map((request) => (
-          <Card className="grid gap-5 p-5 xl:grid-cols-[1fr_320px]" key={request.id}>
-            <div>
-              <div className="flex flex-wrap gap-2">
-                <Badge tone="info">{request.status ?? "new"}</Badge>
-                <Badge>{request.category ?? "uncategorized"}</Badge>
-              </div>
-              <h2 className="mt-3 text-xl font-black">{request.title || "Feature request"}</h2>
-              <p className="mt-1 text-sm font-bold text-muted-foreground">{request.user_email ?? "Unknown user"} · {formatDate(request.created_at)}</p>
-              <p className="mt-4 whitespace-pre-wrap leading-7 text-muted-foreground">{request.description}</p>
-              {request.internal_notes ? <p className="mt-4 rounded-md bg-muted p-3 text-sm font-semibold">{request.internal_notes}</p> : null}
-            </div>
-            <StatusForm endpoint="/api/admin/feature-requests" id={request.id} statuses={["reviewing", "planned", "in_progress", "released", "rejected", "new"]} />
-          </Card>
-        ))}
-        {!requests.length ? <Card className="p-6 text-muted-foreground">No feature requests found.</Card> : null}
-      </div>
-    </div>
     </AdminShell>
   );
 }

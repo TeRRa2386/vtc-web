@@ -1,55 +1,60 @@
-import { StatusForm } from "@/components/admin/status-form";
 import { AdminShell } from "@/components/admin/admin-shell";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { listRows } from "@/lib/admin-data";
+import { SupportTicketsWorkspace, type SupportTicketRecord } from "@/components/admin/support-tickets-workspace";
 import { requireAdmin } from "@/lib/supabase/admin";
-import { formatDate } from "@/lib/utils";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
-type Ticket = {
+type UserProfile = {
+  email?: string | null;
+  first_name?: string | null;
   id: string;
-  user_email?: string;
-  type?: string;
-  category?: string;
-  priority?: string;
-  subject?: string;
-  message?: string;
-  status?: string;
-  internal_notes?: string;
-  created_at?: string;
+  last_name?: string | null;
+  name?: string | null;
 };
 
 export default async function SupportAdminPage() {
   const session = await requireAdmin();
-  const tickets = await listRows<Ticket>("support_tickets", "created_at", 100);
+  const supabase = createSupabaseAdminClient();
+  const { data: ticketRows } = await supabase
+    .from("support_tickets")
+    .select("*")
+    .or("type.is.null,type.neq.suggestion")
+    .order("created_at", { ascending: false })
+    .limit(250);
+
+  const tickets = (ticketRows ?? []) as SupportTicketRecord[];
+  const userIds = Array.from(new Set(tickets.map((ticket) => ticket.user_id).filter(Boolean))) as string[];
+  let userProfilesById = new Map<string, UserProfile>();
+
+  if (userIds.length) {
+    const { data: userProfiles } = await supabase
+      .from("users")
+      .select("id, name, first_name, last_name, email")
+      .in("id", userIds);
+
+    userProfilesById = new Map((userProfiles ?? []).map((profile) => [profile.id, profile as UserProfile]));
+  }
+
+  const ticketsWithProfiles = tickets.map((ticket) => {
+    const profile = ticket.user_id ? userProfilesById.get(ticket.user_id) : null;
+
+    return {
+      ...ticket,
+      profile_email: profile?.email ?? null,
+      user_first_name: profile?.first_name ?? null,
+      user_last_name: profile?.last_name ?? null,
+      user_name: profile?.name ?? null
+    };
+  });
 
   return (
     <AdminShell session={session}>
-    <div className="grid gap-6">
-      <div>
-        <h1 className="text-3xl font-black">Support Tickets</h1>
-        <p className="mt-2 text-muted-foreground">Review support requests, update statuses, and add internal notes.</p>
+      <div className="grid gap-6">
+        <div>
+          <h1 className="text-3xl font-black">Support Tickets</h1>
+          <p className="mt-2 text-muted-foreground">Review support requests, filter by workflow state, and respond from one place.</p>
+        </div>
+        <SupportTicketsWorkspace tickets={ticketsWithProfiles} />
       </div>
-      <div className="grid gap-4">
-        {tickets.map((ticket) => (
-          <Card className="grid gap-5 p-5 xl:grid-cols-[1fr_320px]" key={ticket.id}>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge tone="info">{ticket.status ?? "open"}</Badge>
-                <Badge>{ticket.priority ?? "normal"}</Badge>
-                <Badge>{ticket.category ?? ticket.type ?? "support"}</Badge>
-              </div>
-              <h2 className="mt-3 text-xl font-black">{ticket.subject || "Support request"}</h2>
-              <p className="mt-1 text-sm font-bold text-muted-foreground">{ticket.user_email} · {formatDate(ticket.created_at)}</p>
-              <p className="mt-4 whitespace-pre-wrap leading-7 text-muted-foreground">{ticket.message}</p>
-              {ticket.internal_notes ? <p className="mt-4 rounded-md bg-muted p-3 text-sm font-semibold">{ticket.internal_notes}</p> : null}
-            </div>
-            <StatusForm endpoint="/api/admin/support-tickets" id={ticket.id} statuses={["reviewing", "resolved", "closed", "open"]} />
-          </Card>
-        ))}
-        {!tickets.length ? <Card className="p-6 text-muted-foreground">No support tickets found.</Card> : null}
-      </div>
-    </div>
     </AdminShell>
   );
 }

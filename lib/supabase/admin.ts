@@ -29,15 +29,29 @@ export async function getAdminSession(): Promise<AdminSession | null> {
   } = await supabase.auth.getUser();
 
   if (!user?.id || !user.email) {
+    if (process.env.NODE_ENV !== "production") {
+      console.info("Admin session check: no Supabase user session found");
+    }
     return null;
   }
 
   const admin = createSupabaseAdminClient();
-  const { data } = await admin
+  const { data, error } = await admin
     .from("admin_users")
     .select("role, is_active")
     .eq("user_id", user.id)
     .maybeSingle();
+
+  if (process.env.NODE_ENV !== "production") {
+    console.info("Admin session check:", {
+      adminError: error?.message ?? null,
+      adminFound: Boolean(data),
+      email: user.email,
+      isActive: data?.is_active ?? null,
+      role: data?.role ?? null,
+      userId: user.id
+    });
+  }
 
   if (!data?.is_active) {
     return null;

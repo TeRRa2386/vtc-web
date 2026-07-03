@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -30,7 +31,15 @@ export async function loginAdminWithGoogle() {
   const host = requestHeaders.get("host");
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
   const siteUrl = origin ?? (host ? `${protocol}://${host}` : process.env.NEXT_PUBLIC_SITE_URL);
-  const redirectTo = `${siteUrl}/auth/callback?next=/admin`;
+  const redirectTo = `${siteUrl}/auth/callback`;
+
+  (await cookies()).set("admin_oauth_next", "/admin", {
+    httpOnly: true,
+    maxAge: 300,
+    path: "/",
+    sameSite: "lax",
+    secure: protocol === "https"
+  });
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
@@ -38,6 +47,10 @@ export async function loginAdminWithGoogle() {
       redirectTo
     }
   });
+
+  if (process.env.NODE_ENV !== "production") {
+    console.info("Admin Google OAuth redirectTo:", redirectTo);
+  }
 
   if (error || !data.url) {
     redirect("/admin/login?error=oauth");

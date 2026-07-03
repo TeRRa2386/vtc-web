@@ -101,4 +101,11 @@ create index if not exists feature_requests_status_idx on public.feature_request
 create index if not exists app_announcements_active_idx on public.app_announcements(is_active, platform);
 create index if not exists app_events_platform_version_idx on public.app_events(platform, app_version);
 
+grant select on public.app_versions to service_role;
+grant select on public.content_versions to service_role;
+grant select on public.drugs to service_role;
+grant select on public.diseases to service_role;
+grant select on public.vaccines to service_role;
+grant select on public.emergency_cards to service_role;
+
 notify pgrst, 'reload schema';
