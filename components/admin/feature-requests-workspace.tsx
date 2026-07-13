@@ -17,7 +17,11 @@ export type FeatureRequestRecord = {
   id: string;
   internal_notes?: string | null;
   profile_email?: string | null;
+  response_seen_at?: string | null;
   status?: string | null;
+  technician_name?: string | null;
+  technician_response?: string | null;
+  technician_response_at?: string | null;
   title?: string | null;
   updated_at?: string | null;
   user_email?: string | null;
@@ -77,13 +81,14 @@ export function FeatureRequestsWorkspace({ requests }: { requests: FeatureReques
     if (!selectedDraft) return;
 
     setIsSaving(true);
-    await fetch("/api/admin/support-tickets", {
+    await fetch("/api/admin/feature-requests", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: selectedDraft.id,
         internal_notes: selectedDraft.internal_notes,
-        status: selectedDraft.status
+        status: selectedDraft.status,
+        technician_response: selectedDraft.technician_response
       })
     });
 
@@ -194,7 +199,10 @@ export function FeatureRequestsWorkspace({ requests }: { requests: FeatureReques
                   <p className="mt-1 break-all text-muted-foreground">{selectedUserEmail}</p>
                   <p className="mt-1 break-all text-xs font-bold text-muted-foreground">{selectedDraft.user_id}</p>
                 </div>
-                <div className="rounded-md bg-muted p-4 text-xs font-bold leading-6 text-muted-foreground">
+                <div className="rounded-md bg-muted p-4 text-xs font-normal leading-6 text-muted-foreground">
+                  <p>Technician: {selectedDraft.technician_name || "Not assigned"}</p>
+                  <p>Response sent: {formatDate(selectedDraft.technician_response_at)}</p>
+                  <p>User saw response: {formatDate(selectedDraft.response_seen_at)}</p>
                   <p>Updated: {formatDate(selectedDraft.updated_at)}</p>
                 </div>
               </div>
@@ -217,6 +225,15 @@ export function FeatureRequestsWorkspace({ requests }: { requests: FeatureReques
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </Select>
+              </label>
+
+              <label className="grid gap-2 font-semibold text-muted-foreground">
+                Public response
+                <Textarea
+                  onChange={(event) => updateDraft(selectedDraft.id, { technician_response: event.target.value })}
+                  placeholder="Write a response the user can see in the app..."
+                  value={selectedDraft.technician_response ?? ""}
+                />
               </label>
 
               <label className="grid gap-2 font-semibold text-muted-foreground">

@@ -8,8 +8,12 @@ type SuggestionTicket = {
   id: string;
   internal_notes?: string;
   message?: string;
+  response_seen_at?: string;
   status?: string;
   subject?: string;
+  technician_name?: string;
+  technician_response?: string;
+  technician_response_at?: string;
   updated_at?: string;
   user_email?: string;
   user_id?: string;
@@ -62,7 +66,11 @@ export default async function FeatureRequestsAdminPage() {
     description: ticket.message,
     id: ticket.id,
     internal_notes: ticket.internal_notes,
+    response_seen_at: ticket.response_seen_at,
     status: ticket.status,
+    technician_name: ticket.technician_name,
+    technician_response: ticket.technician_response,
+    technician_response_at: ticket.technician_response_at,
     title: ticket.subject,
     updated_at: ticket.updated_at,
     user_email: ticket.user_email,
