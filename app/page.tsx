@@ -1,5 +1,19 @@
 import Link from "next/link";
-import { Activity, ArrowRight, Bell, Calculator, HeartPulse, Sparkles } from "lucide-react";
+import {
+  Activity,
+  ArrowRight,
+  Bell,
+  Bone,
+  Calculator,
+  FileText,
+  Filter,
+  HeartPulse,
+  Palette,
+  ShieldAlert,
+  Sparkles,
+  Stethoscope,
+  UserRound
+} from "lucide-react";
 
 import { MotionShell } from "@/components/motion-shell";
 import { PageShell } from "@/components/public/page-shell";
@@ -7,9 +21,56 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const features = [
-  { icon: Calculator, title: "Clinical calculators", text: "Dose, fluids, dilution, conversions, bolus/CRI, and anesthesia workflow tools." },
-  { icon: HeartPulse, title: "Reference library", text: "Drug, emergency, disease, vaccine, and normal values references organized for fast use." },
-  { icon: Bell, title: "Patient timers", text: "Multi-timer support for rounds, treatments, monitoring, and daily patient care." }
+  {
+    icon: HeartPulse,
+    title: "Clinical reference library",
+    text: "Organized veterinary drug references, disease information, vaccine and biologic references, emergency guidance, and normal values for fast lookup."
+  },
+  {
+    icon: ShieldAlert,
+    title: "Toxicity Triage",
+    text: "Organize exposure details, patient information, clinical signs, estimated exposure, risk level, and escalation summaries for veterinary toxicology cases."
+  },
+  {
+    icon: Bone,
+    title: "Interactive Dental Chart",
+    text: "Document dog and cat dental findings by tooth, add notes, generate text or PDF reports, and save completed dental chart records."
+  },
+  {
+    icon: Calculator,
+    title: "Clinical calculators and tools",
+    text: "Practical workflow tools for unit conversions, dilution support, anesthesia references, fluid support, and other daily veterinary calculations where available."
+  },
+  {
+    icon: UserRound,
+    title: "Patient information cards",
+    text: "Capture patient ID, name, species, date of birth, age, weight, clinic email, and prepared-by details for supported workflows."
+  },
+  {
+    icon: FileText,
+    title: "PDF and text reports",
+    text: "Generate clean clinical documentation summaries and PDF reports for supported modules, with saved report history for quick access."
+  },
+  {
+    icon: Bell,
+    title: "Patient timers",
+    text: "Create and manage multiple patient timers with notes for treatments, monitoring, rounds, and daily patient care."
+  },
+  {
+    icon: Stethoscope,
+    title: "Notes and favorites",
+    text: "Save clinical notes and favorite important references for faster access during study or clinical work."
+  },
+  {
+    icon: Filter,
+    title: "Advanced filters",
+    text: "Filter diseases, drugs, vaccines, emergencies, and references by species and clinical category to find relevant information faster."
+  },
+  {
+    icon: Palette,
+    title: "Custom themes",
+    text: "Personalize the app with light, dark, and premium visual themes designed for comfortable daily use."
+  }
 ];
 
 export default function HomePage() {
@@ -46,7 +107,7 @@ export default function HomePage() {
             </div>
             <CardTitle className="text-3xl">Clinical reference with safer operations</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 p-6">
+          <CardContent className="grid max-h-[460px] gap-4 overflow-y-auto p-6 pr-3">
             {features.map((feature) => (
               <div className="flex gap-4 rounded-lg border bg-background p-4" key={feature.title}>
                 <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">

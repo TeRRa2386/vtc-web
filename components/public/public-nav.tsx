@@ -35,29 +35,30 @@ export function PublicNav() {
             <span className="hidden text-xs font-bold text-muted-foreground sm:block">Clinical tools for daily patient care</span>
           </span>
         </Link>
-        <div className="hidden items-center gap-4 lg:flex">
-          <nav className="flex items-center gap-1" aria-label="Public navigation">
-            {links.map((link) => (
-              <Link
-                className="rounded-md px-3 py-2 text-sm font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                href={link.href}
-                key={link.href}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <Button asChild variant="outline">
-              <Link href="/privacy">
-                <ShieldCheck size={17} />
-                Privacy
-              </Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/terms">Terms</Link>
-            </Button>
-          </div>
+        <nav
+          className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-1 lg:flex"
+          aria-label="Public navigation"
+        >
+          {links.map((link) => (
+            <Link
+              className="rounded-md px-3 py-2 text-sm font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              href={link.href}
+              key={link.href}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </nav>
+        <div className="hidden items-center gap-2 lg:flex">
+          <Button asChild variant="outline">
+            <Link href="/privacy">
+              <ShieldCheck size={17} />
+              Privacy
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/terms">Terms</Link>
+          </Button>
         </div>
         <Button
           aria-expanded={isOpen}
