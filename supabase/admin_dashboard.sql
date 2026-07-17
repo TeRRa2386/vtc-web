@@ -144,7 +144,7 @@ alter table public.account_deletion_audit enable row level security;
 create index if not exists account_deletion_audit_request_idx on public.account_deletion_audit(request_id);
 create index if not exists account_deletion_audit_action_idx on public.account_deletion_audit(action);
 
-grant select on public.app_versions to service_role;
+grant select, insert, update on public.app_versions to service_role;
 grant select on public.content_versions to service_role;
 grant select on public.drugs to service_role;
 grant select on public.diseases to service_role;

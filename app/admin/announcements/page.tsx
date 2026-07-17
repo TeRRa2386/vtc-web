@@ -1,4 +1,4 @@
-import { AnnouncementForm } from "@/components/admin/announcement-form";
+import { AnnouncementForm, type AnnouncementFormRecord } from "@/components/admin/announcement-form";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -45,8 +45,14 @@ export default async function AnnouncementsAdminPage() {
             <h2 className="mt-3 text-xl font-black">{announcement.title}</h2>
             <p className="mt-2 leading-7 text-muted-foreground">{announcement.message}</p>
             <p className="mt-3 text-xs font-bold text-muted-foreground">
-              Min version: {announcement.min_app_version || "none"} · Expires: {formatDate(announcement.expires_at)}
+              Min version: {announcement.min_app_version || "none"} - Expires: {formatDate(announcement.expires_at)}
             </p>
+            <details className="mt-4 rounded-lg border bg-background p-4">
+              <summary className="cursor-pointer text-sm font-black text-primary">Edit announcement</summary>
+              <div className="mt-4">
+                <AnnouncementForm announcement={announcement as AnnouncementFormRecord} />
+              </div>
+            </details>
           </Card>
         ))}
       </div>

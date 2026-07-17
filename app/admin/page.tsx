@@ -1,6 +1,7 @@
 import { Database, MessageSquare, ShieldAlert } from "lucide-react";
 
 import { AdminShell } from "@/components/admin/admin-shell";
+import { AppVersionEditor, type AppVersionEditorInfo } from "@/components/admin/app-version-editor";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { countRows, listRows } from "@/lib/admin-data";
@@ -9,11 +10,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/utils";
 
 type Ticket = { id: string; subject?: string; status?: string; created_at?: string; type?: string };
-type AppVersionInfo = {
-  latestVersion: string;
-  minimumRequiredVersion: string;
-  platform: "ios" | "android";
-};
+type AppVersionInfo = AppVersionEditorInfo;
 type ContentInfo = {
   count: number;
   label: string;
@@ -108,19 +105,7 @@ export default async function AdminOverviewPage() {
           <h1 className="text-3xl font-black">Overview</h1>
           <p className="mt-2 text-muted-foreground">Operational pulse for Vet Tech Companion.</p>
         </div>
-        <div className="rounded-lg border bg-card px-4 py-3 text-right shadow-soft">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted-foreground">App version</p>
-          <div className="mt-2 grid gap-1">
-            {appVersions.map((version) => (
-              <p className="text-sm font-black" key={version.platform}>
-                {version.platform.toUpperCase()} {version.latestVersion}
-              </p>
-            ))}
-            {!appVersions.length ? (
-              <p className="text-sm font-semibold text-muted-foreground">Unavailable</p>
-            ) : null}
-          </div>
-        </div>
+        <AppVersionEditor versions={appVersions} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
