@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   description: "Public website and admin operations dashboard for Vet Tech Companion.",
   icons: {
     apple: "/app-icon.png",
-    icon: "/app-icon.png",
-    shortcut: "/app-icon.png"
+    icon: "/favicon.png",
+    shortcut: "/favicon.png"
   }
 };
 
