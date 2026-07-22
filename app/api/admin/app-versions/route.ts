@@ -15,17 +15,28 @@ export async function PATCH(request: Request) {
   }
 
   const supabase = createSupabaseAdminClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("app_versions")
-    .upsert({
+    .update({
       latest_version: body.latest_version,
       minimum_required_version: body.minimum_required_version,
-      platform,
       updated_at: new Date().toISOString()
-    }, { onConflict: "platform" });
+    })
+    .eq("platform", platform)
+    .select("platform");
 
   if (error) {
+    if (error.message.toLowerCase().includes("permission denied")) {
+      return NextResponse.json({
+        error: "Supabase permission denied for app_versions. Run: grant select, insert, update on public.app_versions to service_role;"
+      }, { status: 400 });
+    }
+
     return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+
+  if (!data?.length) {
+    return NextResponse.json({ error: `No app_versions row found for ${platform}.` }, { status: 404 });
   }
 
   return NextResponse.json({ ok: true });

@@ -14,16 +14,18 @@ export type AppVersionEditorInfo = {
 
 export function AppVersionEditor({ versions }: { versions: AppVersionEditorInfo[] }) {
   const router = useRouter();
+  const [errorMessage, setErrorMessage] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [savingPlatform, setSavingPlatform] = useState("");
 
   async function saveVersion(event: React.FormEvent<HTMLFormElement>, platform: "ios" | "android") {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    setErrorMessage("");
     setSavingPlatform(platform);
 
     try {
-      await fetch("/api/admin/app-versions", {
+      const response = await fetch("/api/admin/app-versions", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -33,7 +35,14 @@ export function AppVersionEditor({ versions }: { versions: AppVersionEditorInfo[
         })
       });
 
+      if (!response.ok) {
+        const payload = await response.json();
+        throw new Error(payload.error ?? "Unable to update app version.");
+      }
+
       router.refresh();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Unable to update app version.");
     } finally {
       setSavingPlatform("");
     }
@@ -61,6 +70,9 @@ export function AppVersionEditor({ versions }: { versions: AppVersionEditorInfo[
 
       {isEditing ? (
         <div className="mt-4 grid gap-3 text-left">
+          {errorMessage ? (
+            <p className="rounded-md bg-destructive/10 p-3 text-sm font-semibold text-destructive">{errorMessage}</p>
+          ) : null}
           {versions.map((version) => (
             <form className="grid gap-2 rounded-md border bg-background p-3" key={version.platform} onSubmit={(event) => saveVersion(event, version.platform)}>
               <p className="text-sm font-black">{version.platform.toUpperCase()}</p>
