@@ -73,6 +73,9 @@ const features = [
   }
 ];
 
+const appStoreUrl = "https://apps.apple.com/app/id6778492686";
+const googlePlayUrl = "https://play.google.com/store/apps/details?id=com.vettechcompanion.app";
+
 export default function HomePage() {
   return (
     <PageShell>
@@ -89,14 +92,39 @@ export default function HomePage() {
             Fast clinical tools for study, rounds, emergency support, and daily patient care.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Button asChild size="lg">
+            <a
+              aria-label="Download on the App Store"
+              className="inline-flex h-14 overflow-hidden rounded-lg transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              href={appStoreUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <img
+                alt="Download on the App Store"
+                className="h-14 w-auto"
+                src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg"
+              />
+            </a>
+            <a
+              aria-label="Get it on Google Play"
+              className="inline-flex h-14 w-[13rem] items-center overflow-hidden rounded-lg transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              href={googlePlayUrl}
+              rel="noreferrer"
+              target="_blank"
+            >
+              <img
+                alt="Get it on Google Play"
+                className="h-[5rem] w-auto -translate-x-[0.55rem]"
+                src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png"
+              />
+            </a>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-3">
+            <Button asChild size="lg" variant="outline">
               <Link href="/support">
                 Contact support
                 <ArrowRight size={18} />
               </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline">
-              <Link href="/tester-guide">Tester guide</Link>
             </Button>
           </div>
         </MotionShell>
