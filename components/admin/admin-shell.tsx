@@ -2,7 +2,9 @@ import Link from "next/link";
 import {
   BarChart3,
   BellPlus,
+  Handshake,
   ClipboardList,
+  ReceiptText,
   Home,
   Lightbulb,
   LogOut,
@@ -21,6 +23,8 @@ const items = [
   { href: "/admin/deletions", label: "Account Deletions", icon: ShieldAlert },
   { href: "/admin/features", label: "Feature Requests", icon: Lightbulb },
   { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/partners", label: "Partners", icon: Handshake },
+  { href: "/admin/revenuecat", label: "RevenueCat", icon: ReceiptText },
   { href: "/admin/announcements", label: "Announcements", icon: BellPlus },
   { href: "/admin/statistics", label: "Statistics", icon: BarChart3 }
 ];
@@ -78,3 +82,4 @@ export function AdminShell({ children, session }: { children: React.ReactNode; s
     </div>
   );
 }
+

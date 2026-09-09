@@ -103,3 +103,98 @@ The endpoint returns active, non-expired announcements targeted to `all` or the 
 - Admin pages validate the current Supabase Auth session server-side.
 - Privileged operations use server routes and the service role key only on the server.
 - The dashboard does not permanently delete account data yet. Account deletion requests can be tracked and marked, and true deletion should be added behind explicit confirmation logic.
+
+## Referral / Partner Tracking Phase 1
+
+Phase 1 adds the foundations for the partner referral system without changing mobile subscription gating or RevenueCat purchase behavior.
+
+### Supabase setup
+
+Run this SQL in the existing Vet Tech Companion Supabase project:
+
+```sql
+-- file: supabase/referral_phase1.sql
+```
+
+The migration creates:
+
+- `partners`
+- `partner_users`
+- `partner_link_clicks`
+- `user_partner_attributions`
+- `partner_attribution_audit_log`
+- `revenuecat_events`
+- `partner_commission_events`
+- `partner_payouts`
+
+It also enables RLS and grants service-role access for server-side admin/API operations.
+
+### Create the first test partner
+
+1. Open `/admin/partners` with an approved admin account.
+2. Create a partner such as:
+   - Partner name: `Sasha`
+   - Public slug: `sasha`
+   - Referral code: `SASHA`
+   - Status: `active`
+3. Open the generated dashboard at `/admin/partners/sasha`.
+
+### Test the referral URL
+
+Open:
+
+```text
+https://vettechcompanion.com/r/sasha
+```
+
+or locally:
+
+```text
+http://localhost:3000/r/sasha
+```
+
+The page records a row in `partner_link_clicks` and builds store links with partner context. Android includes a Play Store `referrer` payload with `partner`, `partner_slug`, and `click_id` so the next phase can connect Google Play Install Referrer to a Supabase user after sign-in.
+
+### Outside-code configuration still needed later
+
+- Run `supabase/referral_phase1.sql` in Supabase before using the admin screens.
+- Add App Store Connect campaign/provider tokens to each partner if you want Apple aggregate campaign analytics.
+- Android Install Referrer support still requires a mobile-app phase.
+- RevenueCat webhook processing and commission ledger automation are prepared in schema only; they are not active yet.
+- Partner Portal authentication is prepared through `partner_users`, but the read-only partner portal UI is a later phase.
+
+
+## RevenueCat Webhook Phase 3
+
+Phase 3 stores RevenueCat subscription lifecycle webhooks in `public.revenuecat_events` for audit/debugging and later commission processing. It does not create partner commission rows yet.
+
+### Environment variables
+
+Set these on Vercel and locally:
+
+```text
+REVENUECAT_WEBHOOK_AUTH_TOKEN=your-secret-authorization-value
+SUPABASE_SERVICE_ROLE_KEY=server-only-service-role-key
+```
+
+Never expose either value to the browser or mobile app.
+
+### Supabase setup
+
+Run the Phase 1 SQL for a new database, then run the Phase 3 migration against an existing database:
+
+```sql
+-- file: supabase/revenuecat_phase3.sql
+```
+
+The RevenueCat event table deduplicates by `revenuecat_event_id`. It intentionally does not deduplicate by `transaction_id` because multiple lifecycle events can reference the same transaction.
+
+### RevenueCat dashboard setup
+
+Create a webhook integration in RevenueCat pointing to:
+
+```text
+https://vettechcompanion.com/api/revenuecat/webhook
+```
+
+Set the RevenueCat authorization header to the same value stored in `REVENUECAT_WEBHOOK_AUTH_TOKEN`. Send sandbox and production events so testing data remains visible but separable from future financial reporting.
