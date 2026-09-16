@@ -4,10 +4,12 @@ export const appStoreUrl = "https://apps.apple.com/app/id6778492686";
 export const googlePlayUrl = "https://play.google.com/store/apps/details?id=com.vettechcompanion.app";
 export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://vettechcompanion.com";
 export const referralClaimMaxClickAgeDays = Number(process.env.REFERRAL_CLAIM_MAX_CLICK_AGE_DAYS ?? 30);
+export const referralCodeClaimAccountAgeDays = Number(process.env.REFERRAL_CODE_CLAIM_ACCOUNT_AGE_DAYS ?? 7);
 
 export type PartnerRecord = {
   android_referrer_code?: string | null;
   created_at?: string | null;
+  referral_code?: string | null;
   group_name?: string | null;
   id: string;
   ios_campaign_token?: string | null;
@@ -37,6 +39,10 @@ export function normalizePartnerCode(value: string) {
     .slice(0, 48);
 }
 
+export function getPartnerReferralCode(partner: Pick<PartnerRecord, "android_referrer_code" | "referral_code" | "slug">) {
+  return partner.referral_code || partner.android_referrer_code || normalizePartnerCode(partner.slug);
+}
+
 export function detectPlatform(userAgent: string) {
   const normalized = userAgent.toLowerCase();
   if (normalized.includes("android")) return "android";
@@ -56,7 +62,7 @@ export function buildReferralUrl(slug: string) {
 
 export function buildGooglePlayReferralUrl(partner: PartnerRecord, clickId?: string | null) {
   const referrer = new URLSearchParams({
-    partner: partner.android_referrer_code || partner.slug,
+    partner: getPartnerReferralCode(partner),
     partner_slug: partner.slug,
     utm_source: "partner",
     utm_medium: "referral",

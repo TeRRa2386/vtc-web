@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { countRows, listRows } from "@/lib/admin-data";
-import { buildReferralUrl, type PartnerRecord } from "@/lib/referrals";
+import { buildReferralUrl, getPartnerReferralCode, type PartnerRecord } from "@/lib/referrals";
 import { requireAdmin } from "@/lib/supabase/admin";
 import { formatDate } from "@/lib/utils";
 
@@ -60,7 +60,7 @@ export default async function PartnersAdminPage() {
                 <div>
                   <div className="flex flex-wrap gap-2">
                     <Badge tone={statusTone(partner.status)}>{partner.status ?? "active"}</Badge>
-                    <Badge>{partner.android_referrer_code}</Badge>
+                    <Badge>{getPartnerReferralCode(partner)}</Badge>
                   </div>
                   <h2 className="mt-3 text-2xl font-black">{partner.name}</h2>
                   <p className="mt-1 text-sm font-semibold text-muted-foreground">{partner.group_name || "No group name"}</p>

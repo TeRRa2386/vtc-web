@@ -8,6 +8,7 @@ function parsePartnerPayload(body: Record<string, unknown>) {
   const name = String(body.name ?? "").trim();
   const slug = normalizePartnerSlug(String(body.slug || name));
   const android_referrer_code = normalizePartnerCode(String(body.android_referrer_code || slug));
+  const referral_code = normalizePartnerCode(String(body.referral_code || android_referrer_code || slug));
 
   return {
     android_referrer_code,
@@ -16,6 +17,7 @@ function parsePartnerPayload(body: Record<string, unknown>) {
     ios_provider_token: String(body.ios_provider_token ?? "").trim() || null,
     name,
     notes: String(body.notes ?? "").trim() || null,
+    referral_code,
     slug,
     status: String(body.status ?? "active")
   };
@@ -28,8 +30,8 @@ export async function POST(request: Request) {
   const body = await request.json();
   const payload = parsePartnerPayload(body);
 
-  if (!payload.name || !payload.slug || !payload.android_referrer_code) {
-    return NextResponse.json({ error: "Partner name, slug, and Android/referral code are required." }, { status: 400 });
+  if (!payload.name || !payload.slug || !payload.android_referrer_code || !payload.referral_code) {
+    return NextResponse.json({ error: "Partner name, slug, and referral code are required." }, { status: 400 });
   }
 
   const supabase = createSupabaseAdminClient();
@@ -50,8 +52,8 @@ export async function PATCH(request: Request) {
   const id = String(body.id ?? "");
   const payload = parsePartnerPayload(body);
 
-  if (!id || !payload.name || !payload.slug || !payload.android_referrer_code) {
-    return NextResponse.json({ error: "Partner id, name, slug, and Android/referral code are required." }, { status: 400 });
+  if (!id || !payload.name || !payload.slug || !payload.android_referrer_code || !payload.referral_code) {
+    return NextResponse.json({ error: "Partner id, name, slug, and referral code are required." }, { status: 400 });
   }
 
   const supabase = createSupabaseAdminClient();

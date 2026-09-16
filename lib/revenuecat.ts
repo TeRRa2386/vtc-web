@@ -32,10 +32,12 @@ export type NormalizedRevenueCatEvent = {
 export const REVENUECAT_PRODUCT_PLAN_MAP: Record<string, RevenueCatPlanType> = {
   "pro:monthly-standard": "monthly",
   "pro.monthly.standard": "monthly",
+  "pro_monthly": "monthly",
   "pro:annual-founding": "annual",
   "pro.annual.founding": "annual",
   "pro:annual-standard": "annual",
-  "pro.annual.standard": "annual"
+  "pro.annual.standard": "annual",
+  "pro_annual": "annual"
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

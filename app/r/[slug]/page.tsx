@@ -2,11 +2,13 @@ import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { ArrowRight, BadgeCheck, Copy, Smartphone } from "lucide-react";
 
+import { CopyCodeButton } from "@/components/copy-code-button";
 import { MotionShell } from "@/components/motion-shell";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
   detectPlatform,
+  getPartnerReferralCode,
   hashUserAgent,
   type PartnerRecord
 } from "@/lib/referrals";
@@ -48,6 +50,7 @@ export default async function ReferralLandingPage({ params }: PageProps) {
     .single();
 
   const typedPartner = partner as PartnerRecord;
+  const referralCode = getPartnerReferralCode(typedPartner);
 
   return (
     <main className="min-h-screen bg-muted/45 px-4 py-10 sm:px-6 lg:px-8">
@@ -64,9 +67,23 @@ export default async function ReferralLandingPage({ params }: PageProps) {
           </div>
           <div className="grid gap-5 p-6">
             <div className="rounded-lg border bg-muted/50 p-4">
-              <p className="text-sm font-black text-primary">Referral</p>
+              <p className="text-sm font-black text-primary">You were referred by</p>
               <h2 className="mt-1 text-2xl font-black">{typedPartner.name}</h2>
               {typedPartner.group_name ? <p className="mt-1 text-sm font-semibold text-muted-foreground">{typedPartner.group_name}</p> : null}
+            </div>
+
+            <div className="rounded-lg border bg-background p-4">
+              <p className="flex items-center gap-2 text-sm font-black text-muted-foreground">
+                <Copy size={16} />
+                Referral code
+              </p>
+              <p className="mt-2 break-all text-3xl font-black tracking-normal text-primary">{referralCode}</p>
+              <p className="mt-2 text-sm font-semibold text-muted-foreground">
+                Use this code when setting up Vet Tech Companion.
+              </p>
+              <div className="mt-4">
+                <CopyCodeButton code={referralCode} />
+              </div>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2">
@@ -104,17 +121,17 @@ export default async function ReferralLandingPage({ params }: PageProps) {
         </Card>
 
         <Card className="content-start p-6">
-          <Badge tone="info">iOS referral code</Badge>
-          <h2 className="mt-4 text-2xl font-black">Use code {typedPartner.android_referrer_code}</h2>
+          <Badge tone="info">Referral code</Badge>
+          <h2 className="mt-4 text-2xl font-black">Use code {referralCode}</h2>
           <p className="mt-3 leading-7 text-muted-foreground">
-            If the app asks who referred you, enter this code during onboarding before starting a paid subscription.
+            If the app asks who referred you, enter this code before starting a paid subscription.
           </p>
           <div className="mt-5 rounded-lg border bg-background p-4">
             <p className="flex items-center gap-2 text-sm font-black text-muted-foreground">
               <Copy size={16} />
               Referral code
             </p>
-            <p className="mt-2 break-all text-3xl font-black tracking-normal text-primary">{typedPartner.android_referrer_code}</p>
+            <p className="mt-2 break-all text-3xl font-black tracking-normal text-primary">{referralCode}</p>
           </div>
           <a className="mt-5 inline-flex items-center gap-2 text-sm font-black text-primary" href="/support">
             Need help?

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { processRevenueCatEvent } from "@/lib/commissions";
 import { normalizeRevenueCatWebhookPayload, resolveRevenueCatUserId } from "@/lib/revenuecat";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     if (error.code === "23505") {
+      await processRevenueCatEvent(supabase, normalized.revenuecatEventId);
       return NextResponse.json({ ok: true, status: "duplicate" });
     }
 
@@ -94,5 +96,7 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  return NextResponse.json({ ok: true, status: "stored", userResolved: Boolean(userId) });
+  const commissionResult = await processRevenueCatEvent(supabase, normalized.revenuecatEventId);
+
+  return NextResponse.json({ ok: true, commissionResult, status: "stored", userResolved: Boolean(userId) });
 }

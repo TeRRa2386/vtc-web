@@ -69,7 +69,11 @@ export function PartnerForm({ onSaved, partner }: { onSaved?: () => void; partne
       </div>
       <div className="grid gap-3 md:grid-cols-3">
         <label className="grid gap-2 text-sm font-semibold text-muted-foreground">
-          Referral code
+          Public referral code
+          <Input defaultValue={partner?.referral_code ?? partner?.android_referrer_code ?? ""} name="referral_code" placeholder="SASHA" />
+        </label>
+        <label className="grid gap-2 text-sm font-semibold text-muted-foreground">
+          Android referrer code
           <Input defaultValue={partner?.android_referrer_code ?? ""} name="android_referrer_code" placeholder="SASHA" />
         </label>
         <label className="grid gap-2 text-sm font-semibold text-muted-foreground">
@@ -80,11 +84,11 @@ export function PartnerForm({ onSaved, partner }: { onSaved?: () => void; partne
             <option value="inactive">inactive</option>
           </Select>
         </label>
-        <label className="grid gap-2 text-sm font-semibold text-muted-foreground">
-          Group name
-          <Input defaultValue={partner?.group_name ?? ""} name="group_name" placeholder="Facebook group, school, clinic..." />
-        </label>
       </div>
+      <label className="grid gap-2 text-sm font-semibold text-muted-foreground">
+        Group name
+        <Input defaultValue={partner?.group_name ?? ""} name="group_name" placeholder="Facebook group, school, clinic..." />
+      </label>
       <div className="grid gap-3 md:grid-cols-2">
         <label className="grid gap-2 text-sm font-semibold text-muted-foreground">
           iOS campaign token

@@ -198,3 +198,72 @@ https://vettechcompanion.com/api/revenuecat/webhook
 ```
 
 Set the RevenueCat authorization header to the same value stored in `REVENUECAT_WEBHOOK_AUTH_TOKEN`. Send sandbox and production events so testing data remains visible but separable from future financial reporting.
+
+## Partner Commission Engine Phase 4
+
+Phase 4 converts eligible production RevenueCat paid transactions into an auditable partner commission ledger. It does not change the mobile app, RevenueCat SDK setup, paywall, subscription gating, or native runtime.
+
+Core tables and responsibilities:
+
+- `revenuecat_events`: payment/subscription evidence from RevenueCat webhooks.
+- `user_partner_attributions`: authoritative referral ownership.
+- `partner_commission_profiles`: first real paid plan, commission model, and one-year eligibility window per referred user.
+- `partner_commission_events`: immutable ledger entries for positive commissions, refund reversals, and future manual adjustments.
+- `partner_payouts`: manual payout records for partner/month totals after admin payment.
+
+Important rules:
+
+- Only `environment = production` can create real commission events.
+- Trials, sandbox events, unresolved users, users without attribution, link clicks, downloads, and aggregate Apple campaign data do not create commissions.
+- The first real paid transaction locks the commission model as `monthly` or `annual`.
+- Monthly model: `$0.20` per eligible monthly paid transaction, maximum 12 net valid payments, within one calendar year from first real paid transaction.
+- Annual model: one net `$1.00` annual referral commission maximum per referred customer.
+- Refunds create negative reversal ledger rows; original commission rows are not deleted.
+- Payout periods are calculated using `America/New_York` business month.
+
+Admin tools:
+
+- `/admin/commissions` shows partner totals, current-month ledger totals, paid lifetime, lifetime commission, and recent ledger events.
+- `/api/admin/commissions/reprocess` lets approved admins reconcile unresolved RevenueCat users and safely reprocess stored production events.
+
+Run this migration after Phase 1 and Phase 3 migrations:
+
+```sql
+-- file: supabase/partner_commissions_phase4.sql
+```
+
+## Partner Portal Phase 6
+
+Phase 6 adds a read-only Partner Portal for approved partner users. It does not change the mobile app and does not require an EAS build.
+
+Partner routes:
+
+```text
+/partner/login
+/partner
+/partner/[partner-slug]
+```
+
+Admin partner-user management is available on each admin partner detail page:
+
+```text
+/admin/partners/[partner-slug]
+```
+
+Run this migration after the earlier partner migrations:
+
+```sql
+-- file: supabase/partner_portal_phase6.sql
+```
+
+Supabase Auth email setup:
+
+- Add `https://vettechcompanion.com/partner` and local `/partner` URLs to allowed redirect URLs if Supabase requires them for invite/recovery links.
+- Configure Supabase email templates/smtp as needed so partner invite and password recovery emails are delivered.
+- Partner authorization comes only from `public.partner_users`; partners cannot self-attach to an organization.
+
+Security notes:
+
+- Partner pages resolve the authenticated Supabase user server-side, then derive the allowed `partner_id` from `partner_users`.
+- Partner UI receives masked customer IDs and summarized financial DTOs, not raw RevenueCat payloads or full user identifiers.
+- Partners have no write endpoints for commission rows, payouts, RevenueCat events, partner config, or invitations.

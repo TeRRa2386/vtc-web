@@ -4,14 +4,19 @@ import { ArrowLeft, ExternalLink, MousePointerClick, ReceiptText, UsersRound, Wa
 
 import { AdminShell } from "@/components/admin/admin-shell";
 import { CopyReferralButton } from "@/components/admin/copy-referral-button";
+import { PartnerUsersManager, type PartnerUserView } from "@/components/admin/partner-users-manager";
 import { PartnerSettingsModal } from "@/components/admin/partner-settings-modal";
+import { PayoutActionForm } from "@/components/admin/payout-action-form";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getBusinessPayoutPeriod } from "@/lib/commissions";
+import { currency, getPartnerPortalData } from "@/lib/partner-portal";
 import {
   buildAppStoreCampaignUrl,
   buildGooglePlayReferralUrl,
   buildReferralUrl,
+  getPartnerReferralCode,
   type PartnerRecord
 } from "@/lib/referrals";
 import { requireAdmin } from "@/lib/supabase/admin";
@@ -72,6 +77,17 @@ async function safeRows<T>(table: string, partnerId: string, orderColumn: string
   }
 }
 
+async function safeAttributionCount(partnerId: string, column: "platform" | "source", value: string) {
+  const supabase = createSupabaseAdminClient();
+  const { count } = await supabase
+    .from("user_partner_attributions")
+    .select("*", { count: "exact", head: true })
+    .eq("partner_id", partnerId)
+    .eq(column, value);
+
+  return count ?? 0;
+}
+
 function maskedCustomer(userId?: string | null) {
   if (!userId) return "Customer unknown";
   return `Customer #${userId.replace(/-/g, "").slice(0, 6).toUpperCase()}`;
@@ -88,18 +104,38 @@ export default async function PartnerAdminDetailPage({ params }: PageProps) {
   }
 
   const typedPartner = partner as PartnerRecord;
-  const [linkVisits, attributedUsers, commissionEvents, recentClicks, recentAttributions, recentCommissions] = await Promise.all([
+  const [
+    linkVisits,
+    attributedUsers,
+    commissionEvents,
+    recentClicks,
+    recentAttributions,
+    recentCommissions,
+    androidAttributions,
+    codeAttributions,
+    manualAttributions,
+    iosAttributions,
+    partnerUsers
+  ] = await Promise.all([
     safeCount("partner_link_clicks", typedPartner.id),
     safeCount("user_partner_attributions", typedPartner.id),
     safeCount("partner_commission_events", typedPartner.id),
     safeRows<ClickRecord>("partner_link_clicks", typedPartner.id, "created_at", 10),
     safeRows<AttributionRecord>("user_partner_attributions", typedPartner.id, "attributed_at", 10),
-    safeRows<CommissionRecord>("partner_commission_events", typedPartner.id, "transaction_date", 10)
+    safeRows<CommissionRecord>("partner_commission_events", typedPartner.id, "transaction_date", 10),
+    safeAttributionCount(typedPartner.id, "source", "google_play_install_referrer"),
+    safeAttributionCount(typedPartner.id, "source", "partner_code"),
+    safeAttributionCount(typedPartner.id, "source", "admin_manual"),
+    safeAttributionCount(typedPartner.id, "platform", "ios"),
+    safeRows<PartnerUserView>("partner_users", typedPartner.id, "created_at", 100)
   ]);
 
   const referralUrl = buildReferralUrl(typedPartner.slug);
   const googleUrl = buildGooglePlayReferralUrl(typedPartner);
   const appStoreUrl = buildAppStoreCampaignUrl(typedPartner);
+  const referralCode = getPartnerReferralCode(typedPartner);
+  const portalData = await getPartnerPortalData(supabase, typedPartner.id);
+  const currentPeriod = getBusinessPayoutPeriod(new Date().toISOString());
 
   return (
     <AdminShell session={session}>
@@ -131,6 +167,7 @@ export default async function PartnerAdminDetailPage({ params }: PageProps) {
           <h2 className="text-xl font-black">Referral links</h2>
           <div className="mt-4 grid gap-3 text-sm">
             <p className="break-all"><span className="font-black text-primary">Public:</span> {referralUrl}</p>
+            <p className="break-all"><span className="font-black text-primary">Referral code:</span> {referralCode}</p>
             <p className="break-all"><span className="font-black text-primary">Google Play:</span> {googleUrl}</p>
             <p className="break-all"><span className="font-black text-primary">App Store:</span> {appStoreUrl}</p>
           </div>
@@ -138,6 +175,65 @@ export default async function PartnerAdminDetailPage({ params }: PageProps) {
             <CopyReferralButton value={referralUrl} />
             <Button asChild variant="outline"><a href={referralUrl} rel="noreferrer" target="_blank">Open /r link<ExternalLink size={16} /></a></Button>
           </div>
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="text-xl font-black">Authorized partner users</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Partner Portal access is assigned here and never inferred from email domain, slug, or frontend state.
+          </p>
+          <div className="mt-4">
+            <PartnerUsersManager partnerId={typedPartner.id} users={partnerUsers} />
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="text-xl font-black">Current month payout</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {portalData.selectedMonth.label} ledger net is {currency(portalData.currentMonthCommission)}. Marking paid freezes the final payout amount.
+          </p>
+          <div className="mt-4">
+            {portalData.selectedMonth.payout.status === "paid" ? (
+              <div className="rounded-md border bg-background p-4">
+                <Badge tone="success">paid</Badge>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Paid {formatDate(portalData.selectedMonth.payout.paidAt)} for {currency(portalData.selectedMonth.payout.amount ?? 0)}.
+                </p>
+              </div>
+            ) : (
+              <PayoutActionForm
+                amount={portalData.currentMonthCommission}
+                month={currentPeriod.month}
+                partnerId={typedPartner.id}
+                year={currentPeriod.year}
+              />
+            )}
+          </div>
+        </Card>
+
+        <Card className="p-5">
+          <h2 className="text-xl font-black">Attribution sources</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-4">
+            <div className="rounded-md border bg-background p-3">
+              <p className="text-xs font-bold uppercase text-muted-foreground">Android Install Referrer</p>
+              <p className="mt-1 text-2xl font-black">{androidAttributions}</p>
+            </div>
+            <div className="rounded-md border bg-background p-3">
+              <p className="text-xs font-bold uppercase text-muted-foreground">Partner Code</p>
+              <p className="mt-1 text-2xl font-black">{codeAttributions}</p>
+            </div>
+            <div className="rounded-md border bg-background p-3">
+              <p className="text-xs font-bold uppercase text-muted-foreground">Admin Manual</p>
+              <p className="mt-1 text-2xl font-black">{manualAttributions}</p>
+            </div>
+            <div className="rounded-md border bg-background p-3">
+              <p className="text-xs font-bold uppercase text-muted-foreground">iOS Platform</p>
+              <p className="mt-1 text-2xl font-black">{iosAttributions}</p>
+            </div>
+          </div>
+          <p className="mt-3 text-xs font-semibold text-muted-foreground">
+            Source and platform are shown from attribution records; customer identity remains masked.
+          </p>
         </Card>
 
         <div className="grid gap-4 xl:grid-cols-3">
