@@ -50,12 +50,17 @@ export function PartnerShell({ access, children }: { access: PartnerAccess; chil
               <p className="text-sm font-black text-primary">{access.partnerName}</p>
               <p className="text-xs font-bold text-muted-foreground">{access.email} - {access.role}</p>
             </div>
-            <div className="flex flex-wrap gap-2 lg:hidden">
+            <div className="flex flex-wrap items-center gap-2 lg:hidden">
               {items.map((item) => (
                 <Link className="rounded-md bg-muted px-3 py-2 text-xs font-black" href={item.href} key={item.href}>
                   {item.label}
                 </Link>
               ))}
+              <form action={logoutPartner}>
+                <Button aria-label="Sign out" title="Sign out" type="submit" variant="ghost">
+                  <LogOut size={18} />
+                </Button>
+              </form>
             </div>
           </div>
         </header>

@@ -34,7 +34,7 @@ const items = [
 export function AdminShell({ children, session }: { children: React.ReactNode; session: AdminSession }) {
   return (
     <div className="min-h-screen bg-muted/45">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 border-r bg-[#001A2F] p-4 text-white lg:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-72 flex-col border-r bg-[#001A2F] p-4 text-white lg:flex">
         <div className="flex items-center gap-3 px-2 py-3">
           <div className="flex size-11 items-center justify-center rounded-2xl bg-primary/20 text-primary">
             <ClipboardList size={23} />
@@ -44,7 +44,7 @@ export function AdminShell({ children, session }: { children: React.ReactNode; s
             <p className="text-xs font-bold text-white/60">Admin dashboard</p>
           </div>
         </div>
-        <nav className="mt-8 grid gap-1">
+        <nav className="mt-8 grid min-h-0 gap-1 overflow-y-auto">
           {items.map((item) => (
             <Link
               className="flex items-center gap-3 rounded-md px-3 py-3 text-sm font-bold text-white/75 transition hover:bg-white/10 hover:text-white"
@@ -56,7 +56,7 @@ export function AdminShell({ children, session }: { children: React.ReactNode; s
             </Link>
           ))}
         </nav>
-        <form action={logoutAdmin} className="absolute bottom-4 left-4 right-4">
+        <form action={logoutAdmin} className="mt-auto shrink-0 pt-4">
           <Button className="w-full bg-white/10 text-white hover:bg-white/15" type="submit" variant="ghost">
             <LogOut size={17} />
             Sign out
@@ -70,13 +70,18 @@ export function AdminShell({ children, session }: { children: React.ReactNode; s
               <p className="text-sm font-black text-primary">Operations</p>
               <p className="text-xs font-bold text-muted-foreground">{session.email} · {session.role}</p>
             </div>
-            <div className="flex flex-wrap gap-2 lg:hidden">
-              {items.slice(0, 4).map((item) => (
-                <Link className="rounded-md bg-muted px-3 py-2 text-xs font-black" href={item.href} key={item.href}>
+            <form action={logoutAdmin} className="lg:hidden">
+              <Button aria-label="Sign out" title="Sign out" type="submit" variant="ghost">
+                <LogOut size={18} />
+              </Button>
+            </form>
+            <nav aria-label="Admin navigation" className="flex w-full min-w-0 gap-2 overflow-x-auto pb-1 lg:hidden">
+              {items.map((item) => (
+                <Link className="shrink-0 whitespace-nowrap rounded-md bg-muted px-3 py-2 text-xs font-black" href={item.href} key={item.href}>
                   {item.label}
                 </Link>
               ))}
-            </div>
+            </nav>
           </div>
         </header>
         <main className="px-4 py-8 sm:px-6 lg:px-8">{children}</main>

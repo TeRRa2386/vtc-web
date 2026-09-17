@@ -107,14 +107,14 @@ export default async function PartnerPortalDashboardPage({ params, searchParams 
               <h2 className="text-xl font-black">Monthly earnings</h2>
               <p className="mt-1 text-sm text-muted-foreground">Amounts are read from the commission ledger and payout records.</p>
             </div>
-            <form>
-              <div className="flex gap-2">
-                <Select className="min-w-48" defaultValue={data.selectedMonth.value} name="month">
+            <form className="w-full sm:w-auto">
+              <div className="flex min-w-0 gap-2">
+                <Select aria-label="Earnings month" className="min-w-0 flex-1 sm:min-w-48" defaultValue={data.selectedMonth.value} name="month">
                   {data.availableMonths.map((month) => (
                     <option key={month.value} value={month.value}>{month.label}</option>
                   ))}
                 </Select>
-                <button className="min-h-10 rounded-md border bg-card px-4 py-2 text-sm font-bold hover:bg-muted" type="submit">
+                <button className="min-h-10 shrink-0 rounded-md border bg-card px-4 py-2 text-sm font-bold hover:bg-muted" type="submit">
                   View
                 </button>
               </div>
