@@ -6,7 +6,11 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function getSiteUrl(protocol: string, host: string | null, origin: string | null) {
-  return origin ?? (host ? `${protocol}://${host}` : process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? origin ?? (host ? `${protocol}://${host}` : "http://localhost:3000")).replace(/\/$/, "");
+}
+
+function getPartnerPasswordRedirect(siteUrl: string) {
+  return `${siteUrl}/partner/password`;
 }
 
 export async function loginPartner(formData: FormData) {
@@ -55,6 +59,26 @@ export async function loginPartnerWithGoogle() {
   }
 
   redirect(data.url);
+}
+
+export async function requestPartnerPasswordReset(formData: FormData) {
+  const email = String(formData.get("email") ?? "").trim();
+  if (!email) {
+    redirect("/partner/login?error=reset-missing");
+  }
+
+  const supabase = await createSupabaseServerClient();
+  const requestHeaders = await headers();
+  const origin = requestHeaders.get("origin");
+  const host = requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
+  const siteUrl = getSiteUrl(protocol, host, origin);
+
+  await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: getPartnerPasswordRedirect(siteUrl)
+  });
+
+  redirect("/partner/login?status=reset-sent");
 }
 
 export async function logoutPartner() {

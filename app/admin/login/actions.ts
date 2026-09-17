@@ -6,6 +6,10 @@ import { cookies } from "next/headers";
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
+function getSiteUrl(protocol: string, host: string | null, origin: string | null) {
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? origin ?? (host ? `${protocol}://${host}` : "http://localhost:3000")).replace(/\/$/, "");
+}
+
 export async function loginAdmin(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
@@ -30,7 +34,7 @@ export async function loginAdminWithGoogle() {
   const origin = requestHeaders.get("origin");
   const host = requestHeaders.get("host");
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
-  const siteUrl = origin ?? (host ? `${protocol}://${host}` : process.env.NEXT_PUBLIC_SITE_URL);
+  const siteUrl = getSiteUrl(protocol, host, origin);
   const redirectTo = `${siteUrl}/auth/callback`;
 
   (await cookies()).set("admin_oauth_next", "/admin", {

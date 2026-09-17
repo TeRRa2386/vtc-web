@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Handshake } from "lucide-react";
 
-import { loginPartner, loginPartnerWithGoogle } from "@/app/partner/login/actions";
+import { loginPartner, loginPartnerWithGoogle, requestPartnerPasswordReset } from "@/app/partner/login/actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { GoogleLogo } from "@/components/ui/google-logo";
@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: "Partner Login"
 };
 
-export default async function PartnerLoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
+export default async function PartnerLoginPage({ searchParams }: { searchParams: Promise<{ error?: string; status?: string }> }) {
   const params = await searchParams;
   const error =
     params.error === "auth"
@@ -22,7 +22,10 @@ export default async function PartnerLoginPage({ searchParams }: { searchParams:
           ? "Google sign-in could not be started."
           : params.error === "callback"
             ? "Google sign-in could not be completed."
+            : params.error === "reset-missing"
+              ? "Enter your email to receive a password-reset link."
             : null;
+  const resetSent = params.status === "reset-sent";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top_left,rgba(35,196,191,0.22),transparent_32%),hsl(var(--background))] px-4 py-10">
@@ -45,7 +48,16 @@ export default async function PartnerLoginPage({ searchParams }: { searchParams:
               <Input autoComplete="current-password" name="password" type="password" />
             </label>
             {error ? <p className="rounded-md bg-destructive/10 p-3 text-sm font-bold text-destructive">{error}</p> : null}
+            {resetSent ? <p className="rounded-md bg-primary/10 p-3 text-sm font-semibold text-primary">If this email belongs to a partner account, a reset link is on its way.</p> : null}
             <Button type="submit">Sign in</Button>
+          </form>
+
+          <form action={requestPartnerPasswordReset} className="flex flex-wrap items-end gap-3 rounded-md border bg-muted/35 p-3">
+            <label className="grid min-w-48 flex-1 gap-2 text-sm font-semibold text-muted-foreground">
+              Forgot password?
+              <Input autoComplete="email" name="email" placeholder="partner@example.com" required type="email" />
+            </label>
+            <Button type="submit" variant="outline">Send reset link</Button>
           </form>
 
           <div className="flex items-center gap-3 text-xs font-black uppercase text-muted-foreground">

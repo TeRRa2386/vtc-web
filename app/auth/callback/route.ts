@@ -7,9 +7,11 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
   const cookieStore = await cookies();
+  const requestedNext = requestUrl.searchParams.get("next");
+  const safeRequestedNext = requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : null;
   const next = cookieStore.get("admin_oauth_next")?.value ?? "/admin";
   const partnerNext = cookieStore.get("partner_oauth_next")?.value;
-  const redirectTarget = partnerNext ?? next;
+  const redirectTarget = safeRequestedNext ?? partnerNext ?? next;
 
   if (code) {
     const supabase = await createSupabaseServerClient();
@@ -22,6 +24,6 @@ export async function GET(request: Request) {
     }
   }
 
-  const fallback = partnerNext ? "/partner/login?error=callback" : "/admin/login?error=callback";
+  const fallback = safeRequestedNext || partnerNext ? "/partner/login?error=callback" : "/admin/login?error=callback";
   return NextResponse.redirect(new URL(fallback, requestUrl.origin));
 }

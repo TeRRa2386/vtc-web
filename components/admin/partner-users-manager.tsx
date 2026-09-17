@@ -29,7 +29,8 @@ export function PartnerUsersManager({ partnerId, users }: { partnerId: string; u
     event.preventDefault();
     setError("");
     setBusy("invite");
-    const form = new FormData(event.currentTarget);
+    const formElement = event.currentTarget;
+    const form = new FormData(formElement);
 
     try {
       const response = await fetch("/api/admin/partner-users", {
@@ -46,7 +47,7 @@ export function PartnerUsersManager({ partnerId, users }: { partnerId: string; u
         setError(result.error || "Partner user could not be invited.");
         return;
       }
-      event.currentTarget.reset();
+      formElement.reset();
       router.refresh();
     } finally {
       setBusy("");

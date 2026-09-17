@@ -2,7 +2,7 @@
 
 export const appStoreUrl = "https://apps.apple.com/app/id6778492686";
 export const googlePlayUrl = "https://play.google.com/store/apps/details?id=com.vettechcompanion.app";
-export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://vettechcompanion.com";
+export const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "https://vettechcompanion.com").replace(/\/$/, "");
 export const referralClaimMaxClickAgeDays = Number(process.env.REFERRAL_CLAIM_MAX_CLICK_AGE_DAYS ?? 30);
 export const referralCodeClaimAccountAgeDays = Number(process.env.REFERRAL_CODE_CLAIM_ACCOUNT_AGE_DAYS ?? 7);
 
@@ -57,7 +57,7 @@ export function hashUserAgent(userAgent: string) {
 }
 
 export function buildReferralUrl(slug: string) {
-  return `${siteUrl.replace(/\/$/, "")}/r/${slug}`;
+  return `${siteUrl}/r/${slug}`;
 }
 
 export function buildGooglePlayReferralUrl(partner: PartnerRecord, clickId?: string | null) {

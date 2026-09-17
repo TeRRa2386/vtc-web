@@ -7,7 +7,11 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 const validRoles = new Set(["owner", "manager", "viewer"]);
 
 function getSiteUrl(protocol: string, host: string | null, origin: string | null) {
-  return origin ?? (host ? `${protocol}://${host}` : process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000");
+  return (process.env.NEXT_PUBLIC_SITE_URL ?? origin ?? (host ? `${protocol}://${host}` : "http://localhost:3000")).replace(/\/$/, "");
+}
+
+function getPartnerPasswordRedirect(siteUrl: string) {
+  return `${siteUrl}/partner/password`;
 }
 
 async function findAuthUserIdByEmail(supabase: ReturnType<typeof createSupabaseAdminClient>, email: string) {
@@ -32,7 +36,7 @@ async function sendInviteOrRecovery(email: string) {
   const host = requestHeaders.get("host");
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "http";
   const siteUrl = getSiteUrl(protocol, host, origin);
-  const redirectTo = `${siteUrl}/partner`;
+  const redirectTo = getPartnerPasswordRedirect(siteUrl);
 
   const invite = await supabase.auth.admin.inviteUserByEmail(email, { redirectTo });
   if (!invite.error) {
@@ -44,7 +48,10 @@ async function sendInviteOrRecovery(email: string) {
     throw invite.error;
   }
 
-  await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+  if (resetError) {
+    throw resetError;
+  }
   return existingUserId;
 }
 
