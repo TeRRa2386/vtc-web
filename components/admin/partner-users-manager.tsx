@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { MailPlus, RotateCw, ShieldOff, Trash2, UserCheck } from "lucide-react";
+import { Check, MailPlus, RotateCw, ShieldOff, Trash2, UserCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ export function PartnerUsersManager({ partnerId, users }: { partnerId: string; u
   const router = useRouter();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({});
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -54,14 +55,14 @@ export function PartnerUsersManager({ partnerId, users }: { partnerId: string; u
     }
   }
 
-  async function updateUser(id: string, action: "disable" | "reactivate" | "resend" | "revoke") {
+  async function updateUser(id: string, action: "change-role" | "disable" | "reactivate" | "resend" | "revoke", role?: string) {
     setError("");
     setBusy(`${action}-${id}`);
     try {
       const response = await fetch("/api/admin/partner-users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, id, partnerId })
+        body: JSON.stringify({ action, id, partnerId, role })
       });
       const result = await response.json();
       if (!response.ok) {
@@ -112,7 +113,31 @@ export function PartnerUsersManager({ partnerId, users }: { partnerId: string; u
             {users.map((user) => (
               <tr className="bg-background align-top" key={user.id}>
                 <td className="px-4 py-3 font-black">{user.email ?? "Email unavailable"}</td>
-                <td className="px-4 py-3">{user.role}</td>
+                <td className="px-4 py-3">
+                  <div className="flex min-w-44 items-center gap-2">
+                    <Select
+                      aria-label={`Role for ${user.email ?? "partner user"}`}
+                      disabled={busy === `change-role-${user.id}`}
+                      onChange={(event) => setSelectedRoles((current) => ({ ...current, [user.id]: event.target.value }))}
+                      value={selectedRoles[user.id] ?? user.role}
+                    >
+                      <option value="owner">owner</option>
+                      <option value="manager">manager</option>
+                      <option value="viewer">viewer</option>
+                    </Select>
+                    <Button
+                      aria-label="Save role"
+                      disabled={busy === `change-role-${user.id}` || (selectedRoles[user.id] ?? user.role) === user.role}
+                      onClick={() => updateUser(user.id, "change-role", selectedRoles[user.id] ?? user.role)}
+                      size="sm"
+                      title="Save role"
+                      type="button"
+                      variant="outline"
+                    >
+                      <Check size={15} />
+                    </Button>
+                  </div>
+                </td>
                 <td className="px-4 py-3">
                   <Badge tone={user.is_active ? "success" : "default"}>{user.is_active ? "active" : "disabled"}</Badge>
                 </td>

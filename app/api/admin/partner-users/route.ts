@@ -113,7 +113,7 @@ export async function PATCH(request: Request) {
   const partnerId = String(body.partnerId ?? "");
   const action = String(body.action ?? "");
 
-  if (!id || !partnerId || !["disable", "reactivate", "resend", "revoke"].includes(action)) {
+  if (!id || !partnerId || !["change-role", "disable", "reactivate", "resend", "revoke"].includes(action)) {
     return NextResponse.json({ error: "Partner user id, partner, and valid action are required." }, { status: 400 });
   }
 
@@ -131,6 +131,21 @@ export async function PATCH(request: Request) {
 
   if (!partnerUser) {
     return NextResponse.json({ error: "Partner user not found." }, { status: 404 });
+  }
+
+  if (action === "change-role") {
+    const role = String(body.role ?? "");
+    if (!validRoles.has(role)) {
+      return NextResponse.json({ error: "A valid partner role is required." }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from("partner_users")
+      .update({ role })
+      .eq("id", id)
+      .eq("partner_id", partnerId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    return NextResponse.json({ ok: true });
   }
 
   if (action === "revoke") {
