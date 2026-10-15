@@ -164,7 +164,7 @@ export function AccountDeletionsWorkspace({ requests }: { requests: AccountDelet
                   {request.deletion_error}
                 </p>
               ) : null}
-              {actionErrors[request.id] ? (
+              {actionErrors[request.id] && actionErrors[request.id] !== request.deletion_error ? (
                 <p className="mt-4 rounded-md border border-red-500/20 bg-red-500/10 p-3 text-sm font-semibold text-red-700 dark:text-red-300">
                   {actionErrors[request.id]}
                 </p>

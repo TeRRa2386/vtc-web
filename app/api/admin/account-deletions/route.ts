@@ -49,22 +49,10 @@ async function insertAudit({
 
 async function deleteUserData(userId: string) {
   const supabase = createSupabaseAdminClient();
-  const tables = [
-    "favorites",
-    "notes",
-    "clinical_timers",
-    "user_subscription_metadata",
-    "user_app_preferences",
-    "support_tickets",
-    "feature_requests"
-  ];
-
-  for (const table of tables) {
-    const { error } = await supabase.from(table).delete().eq("user_id", userId);
-    if (error) throw new Error(`${table}: ${error.message}`);
-  }
-
-  await supabase.from("users").delete().eq("id", userId);
+  const { error: dataError } = await supabase.rpc("delete_account_user_data", {
+    target_user_id: userId
+  });
+  if (dataError) throw new Error(`account data: ${dataError.message}`);
 
   const { error } = await supabase.auth.admin.deleteUser(userId);
   if (error) throw new Error(`auth.users: ${error.message}`);
