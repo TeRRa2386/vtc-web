@@ -145,7 +145,7 @@ function isPaidEvent(event: RevenueCatEventRow) {
 }
 
 function isRefundEvent(event: RevenueCatEventRow) {
-  return event.environment === "production" && Boolean(event.user_id) && Boolean(event.is_refund_event);
+  return event.environment === "production" && Boolean(event.is_refund_event);
 }
 
 function isWithinEligibility(event: RevenueCatEventRow, profile: CommissionProfileRow) {
@@ -264,6 +264,27 @@ async function getLedger(supabase: SupabaseClient, userId: string) {
   return (data ?? []) as CommissionEventRow[];
 }
 
+async function hasHistoricalCommissionForSubscription(supabase: SupabaseClient, event: RevenueCatEventRow) {
+  const key = event.original_transaction_id ?? transactionKey(event);
+  if (!key) return false;
+
+  const { data: originalRows, error: originalError } = await supabase
+    .from("partner_commission_events")
+    .select("id")
+    .eq("original_transaction_id", key)
+    .limit(1);
+  if (originalError) throw originalError;
+  if (originalRows?.length) return true;
+
+  const { data: sourceRows, error: sourceError } = await supabase
+    .from("partner_commission_events")
+    .select("id")
+    .eq("source_transaction_id", key)
+    .limit(1);
+  if (sourceError) throw sourceError;
+  return Boolean(sourceRows?.length);
+}
+
 function positiveWithoutReversal(row: CommissionEventRow, ledger: CommissionEventRow[]) {
   return numberValue(row.commission_amount) > 0
     && !ledger.some((candidate) => candidate.commission_type === "refund_reversal" && candidate.reversal_of === row.id && candidate.status !== "void");
@@ -339,6 +360,57 @@ async function insertReversal(
   return error?.code === "23505" ? 0 : 1;
 }
 
+async function reverseDeletedAccountCommission(supabase: SupabaseClient, refund: RevenueCatEventRow) {
+  const keys = [...refundKeys(refund)];
+  if (!keys.length) return 0;
+
+  const ledger: CommissionEventRow[] = [];
+  for (const column of ["source_transaction_id", "transaction_id", "original_transaction_id"] as const) {
+    const { data, error } = await supabase
+      .from("partner_commission_events")
+      .select("*")
+      .in(column, keys)
+      .neq("status", "void")
+      .gt("commission_amount", 0)
+      .order("effective_at", { ascending: true })
+      .limit(25);
+    if (error) throw error;
+    for (const row of (data ?? []) as CommissionEventRow[]) {
+      if (!ledger.some((candidate) => candidate.id === row.id)) ledger.push(row);
+    }
+  }
+  const original = ledger.find((row) => !ledger.some((candidate) =>
+    candidate.commission_type === "refund_reversal" && candidate.reversal_of === row.id && candidate.status !== "void"
+  ));
+  if (!original) return 0;
+
+  const effectiveAt = getEffectiveAt(refund);
+  const payoutPeriod = getBusinessPayoutPeriod(effectiveAt);
+  const { error: insertError } = await supabase.from("partner_commission_events").insert({
+    commission_amount: -Math.abs(numberValue(original.commission_amount)),
+    commission_profile_id: null,
+    commission_type: "refund_reversal",
+    effective_at: effectiveAt,
+    eligibility_end: null,
+    eligibility_start: null,
+    original_transaction_id: refund.original_transaction_id ?? original.original_transaction_id,
+    partner_id: (original as CommissionEventRow & { partner_id: string }).partner_id,
+    payout_period_month: payoutPeriod.month,
+    payout_period_year: payoutPeriod.year,
+    plan_type: original.plan_type,
+    platform: storeToPlatform(refund.store),
+    revenuecat_event_id: refund.revenuecat_event_id,
+    reversal_of: original.id,
+    source_transaction_id: transactionKey(refund) ?? original.source_transaction_id,
+    status: "posted",
+    transaction_date: effectiveAt,
+    transaction_id: refund.transaction_id ?? original.transaction_id,
+    user_id: null
+  });
+  if (insertError && insertError.code !== "23505") throw insertError;
+  return insertError?.code === "23505" ? 0 : 1;
+}
+
 function wasRefunded(event: RevenueCatEventRow, refunds: RevenueCatEventRow[]) {
   const paidKeys = refundKeys(event);
   return refunds.some((refund) => [...refundKeys(refund)].some((key) => paidKeys.has(key)));
@@ -354,6 +426,9 @@ export async function processUserCommissions(supabase: SupabaseClient, userId: s
 
   const firstPaid = paidEvents[0];
   const existingProfile = await getExistingProfile(supabase, userId);
+  if (!existingProfile && await hasHistoricalCommissionForSubscription(supabase, firstPaid)) {
+    return { created: 0, reason: "subscription_was_previously_commissioned", reversed: 0, skipped: true, voided: 0 };
+  }
   const { changed, profile } = await ensureProfile(supabase, attribution, firstPaid, existingProfile);
   const voided = changed ? await voidUserLedger(supabase, userId, "Commission profile changed after chronological reprocessing.") : 0;
   const refunds = events.filter(isRefundEvent);
@@ -405,13 +480,19 @@ export async function processUserCommissions(supabase: SupabaseClient, userId: s
 export async function processRevenueCatEvent(supabase: SupabaseClient, revenuecatEventId: string) {
   const { data, error } = await supabase
     .from("revenuecat_events")
-    .select("revenuecat_event_id, user_id")
+    .select("*")
     .eq("revenuecat_event_id", revenuecatEventId)
     .maybeSingle();
 
   if (error) throw error;
-  if (!data?.user_id) return { created: 0, reason: "unresolved_user", reversed: 0, skipped: true, voided: 0 };
-  const result = await processUserCommissions(supabase, data.user_id);
+  if (!data) return { created: 0, reason: "event_not_found", reversed: 0, skipped: true, voided: 0 };
+  const event = data as RevenueCatEventRow;
+  if (!event.user_id) {
+    const reversed = isRefundEvent(event) ? await reverseDeletedAccountCommission(supabase, event) : 0;
+    await supabase.from("revenuecat_events").update({ processed_at: new Date().toISOString() }).eq("revenuecat_event_id", revenuecatEventId);
+    return { created: 0, reason: reversed ? "deleted_account_refund_reversed" : "unresolved_user", reversed, skipped: reversed === 0, voided: 0 };
+  }
+  const result = await processUserCommissions(supabase, event.user_id);
   await supabase.from("revenuecat_events").update({ processed_at: new Date().toISOString() }).eq("revenuecat_event_id", revenuecatEventId);
   return result;
 }
@@ -427,6 +508,7 @@ export async function reconcileRevenueCatEventUsers(supabase: SupabaseClient) {
   let resolved = 0;
 
   for (const row of (data ?? []) as RevenueCatEventRow[]) {
+    if (!row.raw_event || Object.keys(row.raw_event).length === 0) continue;
     const normalized = normalizeRevenueCatWebhookPayload({ event: row.raw_event ?? row });
     const userId = await resolveRevenueCatUserId(supabase, normalized);
     if (!userId) continue;

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { createHash } from "node:crypto";
-
+import { anonymizeEmail, executeAccountDeletion } from "@/lib/account-deletion";
 import { requireApiAdmin } from "@/lib/supabase/admin";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -18,11 +17,6 @@ type DeletionRequest = {
   user_email?: string | null;
   user_id?: string | null;
 };
-
-function anonymizeEmail(email?: string | null) {
-  if (!email) return null;
-  return createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
-}
 
 async function insertAudit({
   action,
@@ -45,17 +39,6 @@ async function insertAudit({
     details,
     request_id: requestId
   });
-}
-
-async function deleteUserData(userId: string) {
-  const supabase = createSupabaseAdminClient();
-  const { error: dataError } = await supabase.rpc("delete_account_user_data", {
-    target_user_id: userId
-  });
-  if (dataError) throw new Error(`account data: ${dataError.message}`);
-
-  const { error } = await supabase.auth.admin.deleteUser(userId);
-  if (error) throw new Error(`auth.users: ${error.message}`);
 }
 
 export async function PATCH(request: Request) {
@@ -171,59 +154,11 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "Deletion countdown has not finished." }, { status: 400 });
     }
 
-    if (!row.user_id) {
-      return NextResponse.json({ error: "Request no longer has a user id." }, { status: 400 });
-    }
-
     try {
-      await deleteUserData(row.user_id);
-
-      const { error } = await supabase
-        .from("account_deletion_requests")
-        .update({
-          anonymized_user_key: anonymizedUserKey,
-          completed_at: now.toISOString(),
-          deleted_at: now.toISOString(),
-          deleted_by: admin.session?.userId,
-          deletion_error: null,
-          internal_notes: body.internal_notes ?? row.internal_notes ?? null,
-          status: "completed",
-          updated_at: now.toISOString(),
-          user_email: "deleted-user",
-          user_id: null
-        })
-        .eq("id", row.id);
-
-      if (error) throw new Error(`account_deletion_requests: ${error.message}`);
-
-      await insertAudit({
-        action: "executed",
-        actorAdminId: admin.session!.userId,
-        anonymizedUserKey,
-        details: { deleted_at: now.toISOString() },
-        requestId: row.id
-      });
-
-      return NextResponse.json({ ok: true, status: "completed" });
+      const result = await executeAccountDeletion({ actorAdminId: admin.session!.userId, requestId: row.id });
+      return NextResponse.json({ ok: true, status: result.status });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Deletion failed.";
-
-      await supabase
-        .from("account_deletion_requests")
-        .update({
-          deletion_error: message,
-          updated_at: now.toISOString()
-        })
-        .eq("id", row.id);
-
-      await insertAudit({
-        action: "failed",
-        actorAdminId: admin.session!.userId,
-        anonymizedUserKey,
-        details: { error: message },
-        requestId: row.id
-      });
-
       return NextResponse.json({ error: message }, { status: 500 });
     }
   }
